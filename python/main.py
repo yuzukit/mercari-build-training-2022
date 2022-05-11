@@ -1,8 +1,9 @@
 import os
 import logging
 import pathlib
-import json
+#import json
 import sqlite3
+import hashlib
 from fastapi import FastAPI, Form, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,18 +21,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def dict_factory(cursor, row):
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+    return d
+
+def hash_image(file):
+    with open(file, 'rb') as f:
+        sha256 = hashlib.sha256(f.read()).hexdigest()
+    return sha256
+
 @app.get("/")
 def root():
     return {"message": "Hello, world!"}
 
 @app.post("/items")
-def add_item(name: str = Form(...), category: str = Form(...)):
-    db = sqlite3.connect('../db/mercari.sqlite3')
-    cur = db.cursor()
-    sql = "INSERT INTO items (name, category) VALUES (?, ?)"
-    cur.execute(sql, (name, category,))
-    db.commit()
-    db.close()
+def add_item(name: str = Form(...), category: str = Form(...), image: str = Form(...)):
+    con = sqlite3.connect('../db/mercari.sqlite3')
+    cur = con.cursor()
+    sql = "INSERT INTO items (name, category, image) VALUES (?, ?, ?)"
+    cur.execute(sql, (name, category, hash_image(image) + ".jpg",))
+    con.commit()
+    con.close()
     # with open("items.json") as f:
     #     df = json.load(f)
     # df["items"].append({"name": name, "category": category})
@@ -42,26 +54,30 @@ def add_item(name: str = Form(...), category: str = Form(...)):
 
 @app.get("/items")
 def get_item():
-    db = sqlite3.connect('../db/mercari.sqlite3')
-    cur = db.cursor()
-    sql = "SELECT name, category FROM items"
+    con = sqlite3.connect('../db/mercari.sqlite3')
+    con.row_factory = dict_factory
+    cur = con.cursor()
+    sql = "SELECT name, category, image FROM items"
     cur.execute(sql)
-    items_list = cur.fetchall()
-    db.close()
-    return items_list
+    items_dic = {}
+    items_dic["items"] = cur.fetchall()
+    con.close()
+    return items_dic
     # with open("items.json") as f:
     #     df = json.load(f)
     # return df
 
 @app.get("/search")
 def search_item(keyword: str):
-    db = sqlite3.connect('../db/mercari.sqlite3')
-    cur = db.cursor()
-    sql = "SELECT name, category FROM items WHERE name=?"
+    con = sqlite3.connect('../db/mercari.sqlite3')
+    con.row_factory = dict_factory
+    cur = con.cursor()
+    sql = "SELECT name, category, image FROM items WHERE name=?"
     cur.execute(sql, (keyword,))
-    docs = cur.fetchall()
-    db.close()
-    return docs
+    items_dic = {}
+    items_dic["items"] = cur.fetchall()
+    con.close()
+    return items_dic
 
 @app.get("/image/{items_image}")
 async def get_image(items_image):
@@ -76,3 +92,14 @@ async def get_image(items_image):
         image = images / "default.jpg"
 
     return FileResponse(image)
+
+@app.get("/items/{item_id}")
+def get_item_from_id(item_id):
+    con = sqlite3.connect('../db/mercari.sqlite3')
+    con.row_factory = dict_factory
+    cur = con.cursor()
+    sql = "SELECT name, category, image FROM items WHERE id = ?"
+    cur.execute(sql, (item_id,))
+    item = cur.fetchall()
+    con.close()
+    return item[0]
