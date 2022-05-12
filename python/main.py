@@ -37,11 +37,11 @@ def root():
     return {"message": "Hello, world!"}
 
 @app.post("/items")
-def add_item(name: str = Form(...), category: str = Form(...), image: str = Form(...)):
+def add_item(name: str = Form(...), category_id: int = Form(...), image: str = Form(...)):
     con = sqlite3.connect('../db/mercari.sqlite3')
     cur = con.cursor()
-    sql = "INSERT INTO items (name, category, image) VALUES (?, ?, ?)"
-    cur.execute(sql, (name, category, hash_image(image) + ".jpg",))
+    sql = "INSERT INTO items (name, category_id, image) VALUES (?, ?, ?)"
+    cur.execute(sql, (name, category_id, hash_image(image) + ".jpg",))
     con.commit()
     con.close()
     # with open("items.json") as f:
@@ -57,7 +57,9 @@ def get_item():
     con = sqlite3.connect('../db/mercari.sqlite3')
     con.row_factory = dict_factory
     cur = con.cursor()
-    sql = "SELECT name, category, image FROM items"
+    sql = '''SELECT items.name, category.category, items.image 
+        FROM items, category 
+        WHERE items.category_id = category.id'''
     cur.execute(sql)
     items_dic = {}
     items_dic["items"] = cur.fetchall()
@@ -72,7 +74,11 @@ def search_item(keyword: str):
     con = sqlite3.connect('../db/mercari.sqlite3')
     con.row_factory = dict_factory
     cur = con.cursor()
-    sql = "SELECT name, category, image FROM items WHERE name=?"
+    sql = '''SELECT items.name, category.category, items.image 
+        FROM items
+        LEFT JOIN category 
+        ON items.category_id=category.id 
+        WHERE items.name=?'''
     cur.execute(sql, (keyword,))
     items_dic = {}
     items_dic["items"] = cur.fetchall()
