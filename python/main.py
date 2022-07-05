@@ -27,21 +27,28 @@ def dict_factory(cursor, row):
         d[col[0]] = row[idx]
     return d
 
+# def hash_image(file):
+#     with open(file, 'rb') as f:
+#         sha256 = hashlib.sha256(f.read()).hexdigest()
+#     return sha256
+
 def hash_image(file):
-    with open(file, 'rb') as f:
-        sha256 = hashlib.sha256(f.read()).hexdigest()
-    return sha256
+    hs = hashlib.sha256(file.encode()).hexdigest()
+    return hs+'.jpg'
 
 @app.get("/")
 def root():
     return {"message": "Hello, world!"}
 
 @app.post("/items")
-def add_item(name: str = Form(...), category_id: int = Form(...), image: str = Form(...)):
+def add_item(name: str = Form(...), category: str = Form(...), image: str = Form(...)):
     con = sqlite3.connect('../db/mercari.sqlite3')
     cur = con.cursor()
+    category_id = cur.execute("SELECT id FROM category WHERE category = ?", (category,)).fetchall()
     sql = "INSERT INTO items (name, category_id, image) VALUES (?, ?, ?)"
-    cur.execute(sql, (name, category_id, hash_image(image) + ".jpg",))
+    cur = con.cursor()
+    cur.execute(sql, (name, category_id[0][0], hash_image(image) + ".jpg",))
+    #cur.execute(sql, (name, category_id, image))
     con.commit()
     con.close()
     # with open("items.json") as f:

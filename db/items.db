@@ -17,3 +17,5 @@ CREATE TABLE category (
 INSERT INTO category VALUES(1, 'fashion');
 INSERT INTO category VALUES(2, 'furniture');
 INSERT INTO category VALUES(3, 'kitchen');
+
+INSERT INTO items  VALUES(1, 'jacket', 1, '../images/default.jpg')
