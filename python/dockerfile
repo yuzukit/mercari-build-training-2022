@@ -1,4 +1,7 @@
 FROM alpine
-
-# STEP4-4では以下は変更しない
-CMD ["python", "-V"]
+RUN apk update && apk add --no-cache python3
+CMD ["python3", "-V"]
+RUN cd ..
+RUN mkdir /python /db
+COPY /python /python
+COPY /db /db

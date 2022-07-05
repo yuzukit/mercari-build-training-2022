@@ -12,8 +12,6 @@
 # #CMD curl -D - -s  -o /dev/null http://example.com
 # #CMD ["uvicorn", "python.main:app", "--host", "127.0.0.1", "--port", "9000"]
 # CMD ["uvicorn", "main:app", "--reload", "--port", "9000"]
-
-
    
 FROM python:3.10-slim-buster
 
